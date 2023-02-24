@@ -34,7 +34,11 @@ class Etage
         /// @brief Retourne le numéro d'étage
         /// @return Le numéro d'étage
         int getId(){return this->id;}
+        /// @brief Vide les personnes d'un étage
         void clear(){this->personnes.clear();};
+        /// @brief Récupère une personne en fonction de son index
+        /// @param i Index de la personne à retrouver
+        /// @return La personne si l'index est valide, nullptr sinon
         Personne* getPersonne(int i)
         {
             if(i>=0 && i < this->personnes.size())
