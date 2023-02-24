@@ -137,23 +137,26 @@ int EtatAscenseur::gestionMonteeAscenseur()
 {
     int nombre = 0;
     Etage* etage = this->ascenseur->getEtage(this->ascenseur->etage_actuel);
-    vector<Personne*>::iterator it;
-    vector<Personne*>::iterator begin = etage->getPersonnesBegin();
-    vector<Personne*>::iterator end = etage->getPersonnesEnd();
-    for(it = begin; it != end; it++)
+    vector<Personne*> temp;
+    for(int i=0; i< etage->comptePersonnes(); i++)
     {
+        Personne* p = etage->getPersonne(i);
         if(this->ascenseur->passagers.size() < MAX_PERSONNES)
         {
-            this->ascenseur->passagers.push_back(*it);
-            etage->removePersonne(it);
+            this->ascenseur->passagers.push_back(p);
             nombre ++;
         }
         else
         {
-            break;
+            temp.push_back(p);
         }
     }
-
+    etage->clear();
+    for(Personne* p: temp)
+    {
+        etage->ajoutePersonne(p);
+    }
+    temp.clear();
     return nombre;
 }
 

@@ -28,21 +28,21 @@ class Etage
         /// @brief Permet d'ajouter une personne à l'étage
         /// @param p La personne à ajouter
         void ajoutePersonne(Personne * p);
-        /// @brief Supprime une personne de la liste
-        /// @param it Itérateur sur la liste de personnes
-        void removePersonne(vector<Personne*>::iterator it);
         /// @brief Compte le nombre de personnes à l'étage
         /// @return le nombre de personnes à cet étage
         int comptePersonnes(){return this->personnes.size();}
         /// @brief Retourne le numéro d'étage
         /// @return Le numéro d'étage
         int getId(){return this->id;}
-        /// @brief Récupère l'itérateur de dépbut de la collection de personnes
-        /// @return L'itérateur begin du vecteur personnes
-        vector<Personne*>::iterator getPersonnesBegin(){return this->personnes.begin();}
-        /// @brief Récupère l'itérateur de fin de la collection de personnes
-        /// @return L'itérateur end du vecteur personnes
-        vector<Personne*>::iterator getPersonnesEnd(){return this->personnes.end();}
+        void clear(){this->personnes.clear();};
+        Personne* getPersonne(int i)
+        {
+            if(i>=0 && i < this->personnes.size())
+            {
+                return this->personnes[i];
+            }
+            return nullptr;
+        }
     private:
         /// @brief Le numéro d'étage
         int id;
