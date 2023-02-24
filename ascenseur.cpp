@@ -110,16 +110,26 @@ int EtatAscenseur::gestionDescenteAscenseur()
 {
     vector<Personne*>::iterator it;
     int nombre = 0;
-    vector<Personne*>::iterator begin = this->ascenseur->passagers.begin();
-    vector<Personne*>::iterator end = this->ascenseur->passagers.end();
-    for(it = begin; it != end; it++)
+    int i=0;
+    vector<Personne*> temp;
+    for(Personne* p: this->ascenseur->passagers)
     {
-        if((*it)->getEtageDesire() == this->ascenseur->etage_actuel)
+        if(p->getEtageDesire() == this->ascenseur->etage_actuel)
         {
             nombre++;
-            this->ascenseur->passagers.erase(it);
+            delete p;
+        }
+        else
+        {
+            temp.push_back(p);
         }
     }
+    this->ascenseur->passagers.clear();
+    for(Personne *p: temp)
+    {
+        this->ascenseur->passagers.push_back(p);
+    }
+    temp.clear();
     return nombre;
 }
 
@@ -153,9 +163,18 @@ Mouvements EtatImmobile::bouge()
     m.nbDescentes = 0;
     m.nbMontees = this->gestionMonteeAscenseur();
     m.nbBloquees = this->ascenseur->getEtage(this->ascenseur->etage_actuel)->comptePersonnes();
-    if(this->ascenseur->demande_immobile != this->ascenseur->etage_minimal - 1 && this->ascenseur->demande_immobile != this->ascenseur->etage_actuel)
+    bool AMontants = this->ascenseur->AMontants() || this->ascenseur->AAppelsMontants();
+    if(AMontants)
     {
-        this->ascenseur->setEtat(this->ascenseur->demande_immobile > this->ascenseur->etage_actuel ? (EtatAscenseur*) new EtatMontant(this->ascenseur) : (EtatAscenseur*) new EtatDescendant(this->ascenseur));
+        this->ascenseur->setEtat(new EtatMontant(this->ascenseur));
+    }
+    else
+    {
+        bool ADescendants = this->ascenseur->ADescendants() || this->ascenseur->AAppelsDescendants();
+        if(ADescendants)
+        {
+            this->ascenseur->setEtat(new EtatDescendant(this->ascenseur));
+        }
     }
     return m;
 }
@@ -176,10 +195,6 @@ Mouvements EtatMontant::bouge()
     if(!aMontants)
     {
         bool aDescendants = this->ascenseur->ADescendants() || this->ascenseur->AAppelsDescendants();
-        if(!aDescendants)
-        {
-            this->ascenseur->demande_immobile = this->ascenseur->etage_minimal - 1;
-        }
         this->ascenseur->setEtat(aDescendants > 0? (EtatAscenseur*) new EtatDescendant(this->ascenseur) : (EtatAscenseur*) new EtatImmobile(this->ascenseur));
     }
 
@@ -203,10 +218,6 @@ Mouvements EtatDescendant::bouge()
     if(!aDescendants)
     {
         bool aMontants = this->ascenseur->AMontants() || this->ascenseur->AAppelsMontants();
-        if(!aMontants)
-        {
-            this->ascenseur->demande_immobile = this->ascenseur->etage_minimal - 1;
-        }
         this->ascenseur->setEtat(aMontants > 0? (EtatAscenseur*) new EtatMontant(this->ascenseur) : (EtatAscenseur*) new EtatImmobile(this->ascenseur));
     }
 
