@@ -2,19 +2,12 @@
 #include "ascenseur.hpp"
 using namespace std;
 
-short saisieEtage(short min_etage, short max_etage, bool etageDesire)
+short saisieEtage(bool etageDesire)
 {
     short etage;
     
-    do
-    {
-        cout << (etageDesire ? "A quel étage va la personne " : "A quel étage se trouve la personne") << "( " << min_etage << " à " << max_etage << ")? ";
-        cin >> etage;
-        if(etage < min_etage || etage > max_etage)
-        {
-            cout << "La plage saisie est invalide. Recommencez." << endl;
-        }
-    } while (etage < min_etage || etage > max_etage);
+    cout << (etageDesire ? "A quel étage va la personne " : "A quel étage se trouve la personne") << "? ";
+    cin >> etage;
     
     return etage;
 }
@@ -23,17 +16,7 @@ int main()
 {
     cout << "Projet Ascenseur V1.0" << endl;
     cout << "Bievenue dans la simulation d'un ascenseur." << endl;
-    cout << "Combien d'étages désirez-vous (4 minimum)? ";
-    int nbEtages = 0;
-    while(nbEtages<4)
-    {
-        cin >> nbEtages;
-        if(nbEtages <4)
-        {
-            cout << "Il faut au moins 4 étages. Combien d'étages? ";
-        }
-    }
-    Ascenseur a(nbEtages, 0);
+    Ascenseur a;
     char choix;
     do
     {
@@ -42,10 +25,10 @@ int main()
         cin >> choix;
         if(tolower(choix) == 'o')
         {
-            short etage_depart = saisieEtage(a.getEtageMinimal(), a.getEtageMaximal(), false);
-            short etage_desire = saisieEtage(a.getEtageMinimal(), a.getEtageMaximal(), true);
-            Personne* p = new Personne(etage_desire);
-            a.ajoutePersonne(p, etage_depart);
+            short etage_depart = saisieEtage(false);
+            short etage_desire = saisieEtage(true);
+            Personne* p = new Personne(etage_depart, etage_desire);
+            a.ajoutePersonne(p);
         }
     } while (tolower(choix) != 'q');
 

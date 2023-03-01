@@ -13,7 +13,7 @@
 
 #include "commons.hpp"
 #include "personne.hpp"
-#include "etage.hpp"
+#include <list>
 
 // Nombre maximums de passagers dans l'ascenseur
 #define MAX_PERSONNES 8
@@ -60,8 +60,8 @@ class EtatAscenseur
         /// @return Le nombre de personnes descendues
         int gestionDescenteAscenseur();
         /// @brief Gère les montées à un étage
-        /// @return Le nombre de personnes montées
-        int gestionMonteeAscenseur();
+        /// @param mouvements Les mouvements à modifier lors de la montée
+        void gestionMonteeAscenseur(Mouvements& mouvements);
     protected:
         /// @brief Le contexte de l'état
         Ascenseur* ascenseur;
@@ -99,23 +99,13 @@ class EtatDescendant: public EtatAscenseur
 class Ascenseur
 {
     public:
-        Ascenseur(short nombre_etages, short etage_minimal=0):etat(nullptr), etage_actuel(etage_minimal),
-         etage_minimal(etage_minimal), nombre_etages(nombre_etages), demande_immobile(etage_minimal - 1){
-            for(int i=etage_minimal;i< etage_minimal+nombre_etages;i++)
-            {
-                this->etages.push_back(new Etage(i));
-            }
+        Ascenseur():etat(nullptr), etage_actuel(0)
+        {
             this->setEtat(new EtatImmobile(this));
         };
         ~Ascenseur(){
             // Nettoie l'état
             this->setEtat(nullptr);
-            // Nettoie les étages
-            for(Etage* e : this->etages)
-            {
-                delete e;
-            }
-            this->etages.clear();
             // Nettoes les passagers restant
             for(Personne* p: this->passagers)
             {
@@ -126,17 +116,23 @@ class Ascenseur
         /// @brief Permet d'ajouter une personne au système
         /// @param personne La personne a ajouter
         /// @param etage L'étage où se trouve la personne
-        void ajoutePersonne(Personne* personne, short etage);
+        void ajoutePersonne(Personne* personne);
         /// @brief Affiche dans la console les informations sur l'ascenseur
         void affiche();
         /// @brief Effectue une itération
         void iteration();
-        /// @brief Récupère l'étage minimum de l'ascenseur
-        /// @return L'étage minimal
-        short getEtageMinimal(){return this->etage_minimal;};
-        /// @brief Récupère l'étage maximal de l'ascenseur
-        /// @return L'étage maximal
-        short getEtageMaximal(){return this->etage_minimal + this->nombre_etages-1;};
+        int get_nbPersonnesAscenseur()
+        {
+            int result = 0;
+            for(Personne* p : this->passagers)
+            {
+                if(p->getEstDansAscenseur())
+                {
+                    result++;
+                }
+            }
+            return result;
+        }
     private:
         /// @brief Effectue un mouvement et change éventuellement l'état
         /// @return Les déplacements qui ont eu lieu à une itération
@@ -144,36 +140,18 @@ class Ascenseur
         /// @brief Affecte un nouvel état à l'ascenseur
         /// @param etat Nouvel état
         void setEtat(EtatAscenseur* etat);
-        /// @brief Récupère l'étage d'un ascenseur en fonction de son numéro
-        /// @param etage Numéro de l'étage
-        /// @return Instance de l'étage correspondant à l'index ou nullptr
-        Etage* getEtage(short etage);
         /// @brief Vérifie si l'ascenseur a des passagers qui montent
         /// @return true s'il y en a au moins un
         bool AMontants();
         /// @brief Vérifie si l'ascenseur a des passagers qui descendent
         /// @return true s'il y en a au moins un
         bool ADescendants();
-        /// @brief Vérifie si l'ascenseur a des appels depuis les étages supérieurs
-        /// @return true s'il y en a au moins un
-        bool AAppelsMontants();
-        /// @brief Vérifie si l'ascenseur a des appels depuis les étages inférieurs
-        /// @return true s'il y en a au moins un
-        bool AAppelsDescendants();
         /// @brief Stocke l'état de l'ascenseur
         EtatAscenseur* etat;
         /// @brief Stocke les passagers de l'ascenseur
-        vector<Personne*> passagers;
-        /// @brief Stocke les étages de l'ascenseur
-        vector<Etage*> etages;
+        list<Personne*> passagers;
         /// @brief Stocke le numéro d'étage actuel de l'ascenseur
         short etage_actuel;
-        /// @brief Stocke le numéro d'étage minimum de l'ascenseur
-        short etage_minimal;
-        /// @brief Stocke le nombre d'étages de l'ascenseur
-        short nombre_etages;
-        /// @brief Stocke l'étage demandé quand l'ascenseur est immobile
-        short demande_immobile;
         friend class EtatAscenseur;
         friend class EtatImmobile;
         friend class EtatMontant;

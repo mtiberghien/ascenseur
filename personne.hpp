@@ -18,9 +18,15 @@
 class Personne
 {
     public:
-        Personne(short etage_desire): etage_desire(etage_desire){}
+        Personne(short etage_initial, short etage_desire): etage_initial(etage_initial), etage_desire(etage_desire), est_dans_ascensceur(false){}
         ~Personne(){}
         short getEtageDesire() const {return this->etage_desire;}
+        short getEtageInitial() const {return this->etage_initial;}
+        bool getEstDansAscenseur() const {return this->est_dans_ascensceur;}
+        short getEtageAppel() const {return this->est_dans_ascensceur ? this->getEtageDesire() : this->getEtageInitial();}
+        void setEstDansAscenseur(bool statut) {this->est_dans_ascensceur=statut;}
     private:
     short etage_desire;
+    short etage_initial;
+    bool est_dans_ascensceur;
 };

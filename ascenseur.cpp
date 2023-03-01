@@ -27,18 +27,14 @@ void Ascenseur::affiche()
     {
         this->etat->affiche();
     }
-    cout << "Avec " << this->passagers.size() << " passager" << (this->passagers.size()>1?"s":"") << endl;
+    int nbPassagers = this->get_nbPersonnesAscenseur();
+    cout << "Avec " << nbPassagers << " passager" << (nbPassagers>1?"s":"") << endl;
 
 }
 
-void Ascenseur::ajoutePersonne(Personne* p, short etage)
+void Ascenseur::ajoutePersonne(Personne* p)
 {
-    int index_etage = etage - this->etage_minimal;
-    if(index_etage >=0 && index_etage < this->nombre_etages)
-    {
-        this->etages[index_etage]->ajoutePersonne(p);
-        this->demande_immobile = etage;
-    }
+    this->passagers.push_back(p);
 }
 
 void Ascenseur::iteration()
@@ -49,16 +45,11 @@ void Ascenseur::iteration()
     m.affiche();
 }
 
-Etage* Ascenseur::getEtage(short etage)
-{
-    return this->etages[this->etage_actuel - this->etage_minimal];
-}
-
 bool Ascenseur::AMontants()
 {
     for(Personne* p: this->passagers)
     {
-        if(p->getEtageDesire() > this->etage_actuel)
+        if(p->getEtageAppel() > this->etage_actuel)
         {
             return true;
         }
@@ -71,33 +62,7 @@ bool Ascenseur::ADescendants()
 {
     for(Personne* p: this->passagers)
     {
-        if(p->getEtageDesire() < this->etage_actuel)
-        {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-bool Ascenseur::AAppelsMontants()
-{
-    for(int i = this->etage_actuel - this->etage_minimal + 1; i < this->etages.size(); i++)
-    {
-        if(this->etages[i]->comptePersonnes() > 0)
-        {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-bool Ascenseur::AAppelsDescendants()
-{
-    for(int i = this->etage_actuel - this->etage_minimal - 1; i >=0; i--)
-    {
-        if(this->etages[i]->comptePersonnes() > 0)
+        if(p->getEtageAppel() < this->etage_actuel)
         {
             return true;
         }
@@ -111,69 +76,62 @@ int EtatAscenseur::gestionDescenteAscenseur()
     vector<Personne*>::iterator it;
     int nombre = 0;
     int i=0;
-    vector<Personne*> temp;
-    for(Personne* p: this->ascenseur->passagers)
+    for(auto it = this->ascenseur->passagers.begin(); it != this->ascenseur->passagers.end();)
     {
-        if(p->getEtageDesire() == this->ascenseur->etage_actuel)
+        Personne* p = *it;
+        if(p->getEstDansAscenseur() && p->getEtageDesire() == this->ascenseur->etage_actuel)
         {
+            auto new_it = next(it);
             nombre++;
             delete p;
+            this->ascenseur->passagers.erase(it);
+            it = new_it;
         }
         else
         {
-            temp.push_back(p);
+            it++;
         }
     }
-    this->ascenseur->passagers.clear();
-    for(Personne *p: temp)
-    {
-        this->ascenseur->passagers.push_back(p);
-    }
-    temp.clear();
+
     return nombre;
 }
 
-int EtatAscenseur::gestionMonteeAscenseur()
+void EtatAscenseur::gestionMonteeAscenseur(Mouvements& mouvements)
 {
-    int nombre = 0;
-    Etage* etage = this->ascenseur->getEtage(this->ascenseur->etage_actuel);
-    vector<Personne*> temp;
-    for(int i=0; i< etage->comptePersonnes(); i++)
+    mouvements.nbMontees = 0;
+    mouvements.nbBloquees = 0;
+    int nbAscenseur = this->ascenseur->get_nbPersonnesAscenseur();
+    for(Personne* p : this->ascenseur->passagers)
     {
-        Personne* p = etage->getPersonne(i);
-        if(this->ascenseur->passagers.size() < MAX_PERSONNES)
+        if(!p->getEstDansAscenseur() && p->getEtageInitial() == this->ascenseur->etage_actuel)
         {
-            this->ascenseur->passagers.push_back(p);
-            nombre ++;
-        }
-        else
-        {
-            temp.push_back(p);
+            if(nbAscenseur < MAX_PERSONNES)
+            {
+                p->setEstDansAscenseur(true);
+                mouvements.nbMontees++;
+                nbAscenseur++;
+            }
+            else
+            {
+                mouvements.nbBloquees ++;
+            }
         }
     }
-    etage->clear();
-    for(Personne* p: temp)
-    {
-        etage->ajoutePersonne(p);
-    }
-    temp.clear();
-    return nombre;
 }
 
 Mouvements EtatImmobile::bouge()
 {
     Mouvements m;
     m.nbDescentes = 0;
-    m.nbMontees = this->gestionMonteeAscenseur();
-    m.nbBloquees = this->ascenseur->getEtage(this->ascenseur->etage_actuel)->comptePersonnes();
-    bool AMontants = this->ascenseur->AMontants() || this->ascenseur->AAppelsMontants();
+    this->gestionMonteeAscenseur(m);
+    bool AMontants = this->ascenseur->AMontants();
     if(AMontants)
     {
         this->ascenseur->setEtat(new EtatMontant(this->ascenseur));
     }
     else
     {
-        bool ADescendants = this->ascenseur->ADescendants() || this->ascenseur->AAppelsDescendants();
+        bool ADescendants = this->ascenseur->ADescendants();
         if(ADescendants)
         {
             this->ascenseur->setEtat(new EtatDescendant(this->ascenseur));
@@ -192,13 +150,11 @@ Mouvements EtatMontant::bouge()
     this->ascenseur->etage_actuel++;
     Mouvements m;
     m.nbDescentes = this->gestionDescenteAscenseur();
-    m.nbMontees = this->gestionMonteeAscenseur();
-    m.nbBloquees = this->ascenseur->getEtage(this->ascenseur->etage_actuel)->comptePersonnes();
-    bool aMontants = this->ascenseur->AMontants() || this->ascenseur->AAppelsMontants();
+    this->gestionMonteeAscenseur(m);
+    bool aMontants = this->ascenseur->AMontants();
     if(!aMontants)
     {
-        bool aDescendants = this->ascenseur->ADescendants() || this->ascenseur->AAppelsDescendants();
-        this->ascenseur->setEtat(aDescendants > 0? (EtatAscenseur*) new EtatDescendant(this->ascenseur) : (EtatAscenseur*) new EtatImmobile(this->ascenseur));
+        this->ascenseur->setEtat(this->ascenseur->passagers.size() > 0? (EtatAscenseur*) new EtatDescendant(this->ascenseur) : (EtatAscenseur*) new EtatImmobile(this->ascenseur));
     }
 
     return m;
@@ -215,13 +171,11 @@ Mouvements EtatDescendant::bouge()
     this->ascenseur->etage_actuel--;
     Mouvements m;
     m.nbDescentes = this->gestionDescenteAscenseur();
-    m.nbMontees = this->gestionMonteeAscenseur();
-    m.nbBloquees = this->ascenseur->getEtage(this->ascenseur->etage_actuel)->comptePersonnes();
-    bool aDescendants = this->ascenseur->ADescendants() || this->ascenseur->AAppelsDescendants();
+    this->gestionMonteeAscenseur(m);
+    bool aDescendants = this->ascenseur->ADescendants();
     if(!aDescendants)
     {
-        bool aMontants = this->ascenseur->AMontants() || this->ascenseur->AAppelsMontants();
-        this->ascenseur->setEtat(aMontants > 0? (EtatAscenseur*) new EtatMontant(this->ascenseur) : (EtatAscenseur*) new EtatImmobile(this->ascenseur));
+        this->ascenseur->setEtat(this->ascenseur->passagers.size() > 0? (EtatAscenseur*) new EtatMontant(this->ascenseur) : (EtatAscenseur*) new EtatImmobile(this->ascenseur));
     }
 
     return m;  
